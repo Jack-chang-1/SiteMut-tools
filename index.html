@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeneDIY-C: 定点突变引物设计工具</title>
+    <title>GeneDIY-C V1.7: 多点突变与无缝克隆计算</title>
     <style>
         :root {
             --primary: #4f46e5;       /* Indigo */
             --primary-light: #e0e7ff;
             --danger: #e11d48;        /* Rose Red */
-            --warning: #d97706;       /* Amber */
+            --purple: #7c3aed;        /* Calculator Theme */
             --success: #16a34a;
             --surface: #ffffff;
             --bg: #f3f4f6;            /* Cool Gray */
@@ -47,7 +47,7 @@
         /* Main Layout */
         main {
             display: grid;
-            grid-template-columns: 420px 1fr;
+            grid-template-columns: 450px 1fr;
             gap: 1.5rem;
             padding: 1.5rem;
             height: calc(100vh - 70px);
@@ -68,6 +68,7 @@
         }
 
         h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text); border-left: 4px solid var(--primary); padding-left: 0.75rem; }
+        h3 { font-size: 1rem; font-weight: 600; color: var(--purple); display: flex; align-items: center; gap: 8px; margin: 0; }
         
         /* Inputs */
         .form-group { display: flex; flex-direction: column; gap: 0.5rem; position: relative; }
@@ -87,6 +88,31 @@
         .row { display: flex; gap: 1rem; }
         .col { flex: 1; }
 
+        /* Mode Switch */
+        .mode-switch {
+            display: flex;
+            background: #e2e8f0;
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .mode-btn {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         /* Auto Checkbox */
         .checkbox-wrapper {
             display: flex;
@@ -105,82 +131,57 @@
         .slider-container { display: flex; align-items: center; gap: 1rem; }
         input[type="range"] { flex: 1; cursor: pointer; accent-color: var(--primary); }
 
+        /* Multi-Site List */
+        .mut-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .mut-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 6px; position: relative; }
+        .mut-item-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 4px; }
+        .mut-item-desc { font-family: monospace; font-size: 0.8rem; color: var(--primary); }
+        .btn-del-mut { color: var(--danger); cursor: pointer; font-size: 0.8rem; }
+        .btn-add { background: #ecfdf5; color: var(--success); border: 1px dashed var(--success); text-align: center; padding: 8px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; margin-top: 10px; }
+        .btn-add:hover { background: #d1fae5; }
+
         /* Canvas Area */
         .canvas-container {
             position: relative;
             background: #f9fafb;
             border-radius: var(--radius);
             border: 1px solid var(--border);
-            height: 480px;
+            height: 400px;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin-bottom: 20px;
         }
         #plasmidCanvas { cursor: crosshair; }
-        .canvas-tooltip {
-            position: absolute;
-            background: rgba(0,0,0,0.85);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            pointer-events: none;
-            display: none;
-            z-index: 10;
-            white-space: pre-wrap;
-        }
 
         /* Results Cards */
-        .result-card {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: var(--radius);
-            padding: 1rem;
-            font-size: 0.9rem;
-        }
-        .primer-box {
-            background: white;
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-top: 0.5rem;
-            border: 1px dashed var(--primary);
-            position: relative;
-        }
-        .primer-seq {
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
-            line-height: 1.4;
-            font-size: 0.95em;
-        }
-        .seq-label {
-            font-size: 0.7rem;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-            display: block;
-        }
+        .result-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 1rem; font-size: 0.9rem; margin-bottom: 12px; }
+        .amplicon-header { font-weight: 700; color: var(--text); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #bfdbfe; display: flex; justify-content: space-between; }
+        .primer-box { background: white; padding: 0.75rem; border-radius: 6px; margin-top: 0.5rem; border: 1px dashed var(--primary); position: relative; }
+        .primer-seq { font-family: 'Courier New', monospace; word-break: break-all; line-height: 1.4; font-size: 0.95em; }
+        .seq-label { font-size: 0.7rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; display: block; }
         .part-overlap { color: #d97706; font-weight: bold; }
         .part-mut { color: var(--danger); font-weight: 900; background: #fee2e2; padding: 0 2px; border-radius: 2px; }
         .part-ext { color: var(--primary); font-weight: bold; }
 
         /* Buttons */
-        .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .btn { background: var(--primary); color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; font-weight: 600; width: 100%; transition: all 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-top: 10px; }
         .btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
         .btn:hover:not(:disabled) { background: #4338ca; transform: translateY(-1px); }
         .btn-outline { background: white; border: 1px solid var(--primary); color: var(--primary); margin-top: 10px; }
         .btn-outline:hover { background: #e0e7ff; }
+        .btn-calc { background: var(--purple); color: white; width: 100%; padding: 12px; font-size: 16px; margin-top: 15px; border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .btn-calc:hover { background: #6d28d9; }
+
+        /* Calculator Styles */
+        .calc-panel { border-top: 4px solid var(--purple); background: white; border-radius: 8px; padding: 15px; margin-top: 25px; box-shadow: var(--shadow); }
+        .config-bar { background: #fdf4ff; padding: 12px; border-radius: 6px; margin: 15px 0; display: flex; gap: 15px; align-items: center; border: 1px solid #e9d5ff; flex-wrap: wrap; font-size: 0.9rem; }
+        .mix-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; font-size: 0.85rem; }
+        .mix-table th { background: #f3f4f6; padding: 10px; text-align: left; border-bottom: 2px solid #e5e7eb; color: #374151; }
+        .mix-table td { padding: 8px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        .mix-input { width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; text-align: center; font-family: 'Courier New'; }
+        .mix-result { font-weight: bold; color: var(--purple); }
+        .water-row { background: #fdf4ff; font-weight: bold; color: var(--purple); }
 
         /* Utilities */
         .hidden { display: none !important; }
@@ -202,15 +203,20 @@
         GeneDIY-C
     </div>
     <div class="meta">
-        Author: Jack Chang | Updated: 2026/01/16
+        Author: Jack Chang | Updated: 2026/01/16 (V1.7)
     </div>
 </header>
 
 <main>
     <div class="panel">
         <div>
-            <h2>1. 载体序列输入</h2>
-            <div class="form-group">
+            <h2>1. 模式选择与序列</h2>
+            <div class="mode-switch">
+                <div class="mode-btn active" id="modeSingle" onclick="switchMode('single')">单点突变 (Single Site)</div>
+                <div class="mode-btn" id="modeMulti" onclick="switchMode('multi')">多点突变 (Multi-Site)</div>
+            </div>
+            
+            <div class="form-group" style="margin-top:10px;">
                 <label>质粒序列 (5' -> 3') <span id="seqLength" style="float:right; color:#666; font-weight:400">0 bp</span></label>
                 <textarea id="plasmidSeq" rows="4" placeholder="粘贴质粒序列 (自动过滤非ATCG字符)..."></textarea>
             </div>
@@ -238,26 +244,25 @@
             </div>
         </div>
 
-        <div>
-            <h2>3. 突变位点与类型</h2>
+        <div id="singleConfig">
+            <h2>3. 突变位点设置</h2>
             <div class="form-group">
-                <label>突变起始位置 (Index: 1-based)</label>
+                <label>突变起始位置 (Index)</label>
                 <div class="slider-container">
                     <input type="range" id="posSlider" min="1" max="1" value="1">
                     <input type="number" id="posInput" min="1" value="1" style="width: 80px;">
                 </div>
-                <div id="contextSeq" style="font-family: monospace; text-align: center; margin-top: 8px; font-size: 13px; color: #4b5563; background:#f9fafb; padding:4px; border-radius:4px; border:1px solid #e5e7eb;">
-                    </div>
+                <div id="contextSeq" style="font-family: monospace; text-align: center; margin-top: 8px; font-size: 13px; color: #4b5563; background:#f9fafb; padding:4px; border-radius:4px; border:1px solid #e5e7eb;"></div>
             </div>
 
             <div class="form-group">
                 <label>突变类型</label>
                 <select id="mutationType">
-                    <option value="substitution">单碱基替换 (Single Base Substitution)</option>
-                    <option value="multi_substitution">多碱基替换 (Multi-base Substitution)</option>
-                    <option value="amino">氨基酸突变 (Amino Acid Change)</option>
-                    <option value="insertion">插入 (Insertion)</option>
-                    <option value="deletion">删除 (Deletion)</option>
+                    <option value="substitution">单碱基替换</option>
+                    <option value="multi_substitution">多碱基替换</option>
+                    <option value="amino">氨基酸突变</option>
+                    <option value="insertion">插入</option>
+                    <option value="deletion">删除</option>
                 </select>
             </div>
 
@@ -265,20 +270,17 @@
                 <label>新碱基</label>
                 <input type="text" id="targetBase" placeholder="如: T" maxlength="1">
             </div>
-
             <div id="multiSubInput" class="form-group input-area hidden" style="margin-top:10px;">
-                <label>新碱基序列 (替换原序列)</label>
+                <label>替换序列 (Max 6bp)</label>
                 <input type="text" id="multiSubSeq" placeholder="如: ATGC...">
-                <div class="limit-hint">限制: 最多替换 6 个连续碱基</div>
-                <small id="multiSubError" class="error-msg hidden">错误：长度超过 6bp 限制</small>
+                <small id="multiSubError" class="error-msg hidden">错误：长度超过 6bp</small>
             </div>
-
             <div id="aminoInput" class="form-group input-area hidden" style="margin-top:10px;">
                 <label>目标氨基酸</label>
                 <div class="row">
                     <select id="targetAmino">
                         <option value="A">Alanine (A)</option>
-                        <option value="R">Arginine (R)</option>
+                         <option value="R">Arginine (R)</option>
                         <option value="N">Asparagine (N)</option>
                         <option value="D">Aspartic Acid (D)</option>
                         <option value="C">Cysteine (C)</option>
@@ -299,25 +301,25 @@
                         <option value="V">Valine (V)</option>
                         <option value="*">STOP (*)</option>
                     </select>
-                    <select id="codonPreference" style="flex:1">
-                        <option value="auto">自动最优密码子</option>
-                    </select>
                 </div>
             </div>
-
             <div id="insInput" class="form-group input-area hidden" style="margin-top:10px;">
-                <label>插入序列 (5' -> 3')</label>
+                <label>插入序列 (Max 10bp)</label>
                 <input type="text" id="insertSeq" placeholder="ATCG...">
-                <div class="limit-hint">限制: 最多插入 10 bp</div>
-                <small id="insError" class="error-msg hidden">错误：长度超过 10bp 限制</small>
+                <small id="insError" class="error-msg hidden">错误：长度超过 10bp</small>
             </div>
-            
             <div id="delInput" class="form-group input-area hidden" style="margin-top:10px;">
                 <label>删除长度 (bp)</label>
                 <input type="number" id="delLengthInput" value="3" min="1">
-                <div class="limit-hint" id="delLimitHint">限制: 不超过载体 70%</div>
-                <small id="delError" class="error-msg hidden">错误：删除长度超过载体 70%</small>
+                <small id="delError" class="error-msg hidden">错误：超限</small>
             </div>
+        </div>
+
+        <div id="multiConfig" class="hidden">
+            <h2>3. 突变列表 (片段拼接)</h2>
+            <div class="limit-hint" style="margin-bottom:5px">提示：先在单点模式配置好参数，点击下方添加按钮加入列表。</div>
+            <div id="mutListContainer" class="mut-list"></div>
+            <div class="btn-add" onclick="addCurrentMutation()">+ 添加当前配置的突变</div>
         </div>
         
         <button class="btn" id="generateBtn">生成引物与图谱</button>
@@ -326,8 +328,7 @@
 
     <div class="panel">
         <div class="canvas-container">
-            <canvas id="plasmidCanvas" width="380" height="380"></canvas>
-            <div id="canvasTooltip" class="canvas-tooltip"></div>
+            <canvas id="plasmidCanvas" width="400" height="400"></canvas>
             
             <div style="position: absolute; bottom: 10px; width: 100%; text-align: center;">
                  <div class="legend">
@@ -348,121 +349,138 @@
                 </div>
             </div>
         </div>
+
+        <div id="calculatorPanel" class="calc-panel hidden">
+            <h3>🧪 无缝克隆体系计算器</h3>
+            <div class="config-bar">
+                <div>载体/骨架质量: <input type="number" id="calcVecMass" value="50" class="mix-input" style="width:60px; display:inline"> ng</div>
+                <div>片段:载体 (摩尔比): <input type="number" id="calcRatio" value="2" class="mix-input" style="width:50px; display:inline"> : 1</div>
+                <div>体系总体积: <input type="number" id="calcTotalVol" value="20" class="mix-input" style="width:50px; display:inline"> μL</div>
+            </div>
+
+            <table class="mix-table">
+                <thead>
+                    <tr>
+                        <th width="20%">组分</th>
+                        <th width="20%">长度 (bp)</th>
+                        <th width="20%">浓度 (ng/μL)</th>
+                        <th width="20%">体积 (μL)</th>
+                        <th width="20%">摩尔数 (pmol)</th>
+                    </tr>
+                </thead>
+                <tbody id="mixTableBody">
+                    </tbody>
+                <tfoot style="border-top: 2px solid #e5e7eb;">
+                    <tr class="water-row">
+                        <td colspan="3" style="text-align: right;">💧 补水 (ddH₂O) 至总体积:</td>
+                        <td class="mix-result" id="resWater">-</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            
+            <button class="btn-calc" onclick="calculateMix()">计算加样体积</button>
+            <p style="font-size: 11px; color: #64748b; margin-top: 10px; text-align: center;">
+                * 公式: Mass(Frag) = Mass(Vec) × [Len(Frag)/Len(Vec)] × Ratio
+            </p>
+        </div>
     </div>
 </main>
 
 <script>
-/**
- * Scientific Data & Utils
- */
-const NN_PARAMS = {
-    'AA': [-7.9, -22.2], 'TT': [-7.9, -22.2], 'AT': [-7.2, -20.4], 'TA': [-7.2, -21.3],
-    'CA': [-8.5, -22.7], 'TG': [-8.5, -22.7], 'GT': [-8.4, -22.4], 'AC': [-8.4, -22.4],
-    'CT': [-7.8, -21.0], 'AG': [-7.8, -21.0], 'GA': [-8.2, -22.2], 'TC': [-8.2, -22.2],
-    'CG': [-10.6, -27.2], 'GC': [-9.8, -24.4], 'GG': [-8.0, -19.9], 'CC': [-8.0, -19.9],
-    'init': [0.2, -5.7], 'termGC': [0.1, -2.8], 'termAT': [2.3, 4.1]
+/** Data & Constants */
+const NN_PARAMS = {'AA': [-7.9, -22.2], 'TT': [-7.9, -22.2], 'AT': [-7.2, -20.4], 'TA': [-7.2, -21.3], 'CA': [-8.5, -22.7], 'TG': [-8.5, -22.7], 'GT': [-8.4, -22.4], 'AC': [-8.4, -22.4], 'CT': [-7.8, -21.0], 'AG': [-7.8, -21.0], 'GA': [-8.2, -22.2], 'TC': [-8.2, -22.2], 'CG': [-10.6, -27.2], 'GC': [-9.8, -24.4], 'GG': [-8.0, -19.9], 'CC': [-8.0, -19.9], 'init': [0.2, -5.7], 'termGC': [0.1, -2.8], 'termAT': [2.3, 4.1]};
+const OPTIMAL_CODONS = {'A': 'GCG', 'R': 'CGT', 'N': 'AAC', 'D': 'GAT', 'C': 'TGC', 'Q': 'CAG', 'E': 'GAA', 'G': 'GGC', 'H': 'CAT', 'I': 'ATT', 'L': 'CTG', 'K': 'AAA', 'M': 'ATG', 'F': 'TTC', 'P': 'CCG', 'S': 'AGC', 'T': 'ACC', 'W': 'TGG', 'Y': 'TAT', 'V': 'GTG', '*': 'TAA'};
+const AA_MAP_REV = {'TTT':'F', 'TTC':'F', 'TTA':'L', 'TTG':'L', 'TCT':'S', 'TCC':'S', 'TCA':'S', 'TCG':'S', 'TAT':'Y', 'TAC':'Y', 'TAA':'*', 'TAG':'*', 'TGT':'C', 'TGC':'C', 'TGA':'*', 'TGG':'W', 'CTT':'L', 'CTC':'L', 'CTA':'L', 'CTG':'L', 'CCT':'P', 'CCC':'P', 'CCA':'P', 'CCG':'P', 'CAT':'H', 'CAC':'H', 'CAA':'Q', 'CAG':'Q', 'CGT':'R', 'CGC':'R', 'CGA':'R', 'CGG':'R', 'ATT':'I', 'ATC':'I', 'ATA':'I', 'ATG':'M', 'ACT':'T', 'ACC':'T', 'ACA':'T', 'ACG':'T', 'AAT':'N', 'AAC':'N', 'AAA':'K', 'AAG':'K', 'AGT':'S', 'AGC':'S', 'AGA':'R', 'AGG':'R', 'GTT':'V', 'GTC':'V', 'GTA':'V', 'GTG':'V', 'GCT':'A', 'GCC':'A', 'GCA':'A', 'GCG':'A', 'GAT':'D', 'GAC':'D', 'GAA':'E', 'GAG':'E', 'GGT':'G', 'GGC':'G', 'GGA':'G', 'GGG':'G'};
+
+/* State */
+let appMode = 'single';
+let mutList = []; 
+let appData = { seq: "", primers: null };
+
+/* DOM Elements */
+const els = {
+    plasmidSeq: document.getElementById('plasmidSeq'),
+    seqLength: document.getElementById('seqLength'),
+    modeSingle: document.getElementById('modeSingle'),
+    modeMulti: document.getElementById('modeMulti'),
+    singleConfig: document.getElementById('singleConfig'),
+    multiConfig: document.getElementById('multiConfig'),
+    mutListContainer: document.getElementById('mutListContainer'),
+    calculatorPanel: document.getElementById('calculatorPanel'),
+    mixTableBody: document.getElementById('mixTableBody'),
+    // Inputs
+    posSlider: document.getElementById('posSlider'),
+    posInput: document.getElementById('posInput'),
+    mutType: document.getElementById('mutationType'),
+    targetBase: document.getElementById('targetBase'),
+    multiSubSeq: document.getElementById('multiSubSeq'),
+    insertSeq: document.getElementById('insertSeq'),
+    delLengthInput: document.getElementById('delLengthInput'),
+    targetAmino: document.getElementById('targetAmino'),
+    // Params
+    fwdExtLen: document.getElementById('fwdExtLen'),
+    revExtLen: document.getElementById('revExtLen'),
+    ovLen: document.getElementById('ovLen'),
+    autoTm: document.getElementById('autoTm'),
+    // Output
+    generateBtn: document.getElementById('generateBtn'),
+    exportBtn: document.getElementById('exportBtn'),
+    results: document.getElementById('primerResults'),
+    canvas: document.getElementById('plasmidCanvas')
 };
 
-const OPTIMAL_CODONS = {
-    'A': 'GCG', 'R': 'CGT', 'N': 'AAC', 'D': 'GAT', 'C': 'TGC', 'Q': 'CAG', 'E': 'GAA', 'G': 'GGC',
-    'H': 'CAT', 'I': 'ATT', 'L': 'CTG', 'K': 'AAA', 'M': 'ATG', 'F': 'TTC', 'P': 'CCG', 'S': 'AGC',
-    'T': 'ACC', 'W': 'TGG', 'Y': 'TAT', 'V': 'GTG', '*': 'TAA'
-};
-
-const AA_MAP_REV = {
-    'TTT':'F', 'TTC':'F', 'TTA':'L', 'TTG':'L', 'TCT':'S', 'TCC':'S', 'TCA':'S', 'TCG':'S',
-    'TAT':'Y', 'TAC':'Y', 'TAA':'*', 'TAG':'*', 'TGT':'C', 'TGC':'C', 'TGA':'*', 'TGG':'W',
-    'CTT':'L', 'CTC':'L', 'CTA':'L', 'CTG':'L', 'CCT':'P', 'CCC':'P', 'CCA':'P', 'CCG':'P',
-    'CAT':'H', 'CAC':'H', 'CAA':'Q', 'CAG':'Q', 'CGT':'R', 'CGC':'R', 'CGA':'R', 'CGG':'R',
-    'ATT':'I', 'ATC':'I', 'ATA':'I', 'ATG':'M', 'ACT':'T', 'ACC':'T', 'ACA':'T', 'ACG':'T',
-    'AAT':'N', 'AAC':'N', 'AAA':'K', 'AAG':'K', 'AGT':'S', 'AGC':'S', 'AGA':'R', 'AGG':'R',
-    'GTT':'V', 'GTC':'V', 'GTA':'V', 'GTG':'V', 'GCT':'A', 'GCC':'A', 'GCA':'A', 'GCG':'A',
-    'GAT':'D', 'GAC':'D', 'GAA':'E', 'GAG':'E', 'GGT':'G', 'GGC':'G', 'GGA':'G', 'GGG':'G'
-};
-
+/* --- Utils --- */
 function revComp(seq) {
-    const map = {'A':'T', 'T':'A', 'C':'G', 'G':'C', 'N':'N', 'a':'t', 't':'a', 'c':'g', 'g':'c'};
-    return seq.split('').reverse().map(b => map[b] || b).join('');
+    const map = {'A':'T', 'T':'A', 'C':'G', 'G':'C', 'N':'N'};
+    return seq.toUpperCase().split('').reverse().map(b => map[b] || b).join('');
 }
-
 function getCircularSeq(fullSeq, start, length) {
     const len = fullSeq.length;
-    let s = (start % len + len) % len; 
+    let s = (start % len + len) % len;
     let result = "";
     for (let i = 0; i < length; i++) {
         result += fullSeq[(s + i) % len];
     }
     return result;
 }
-
-function calculateTm(seq, conc_primer_nM = 250) {
+function calculateTm(seq) {
     seq = seq.toUpperCase();
     if (seq.length < 8) return 0;
-    
-    let dH = NN_PARAMS.init[0];
-    let dS = NN_PARAMS.init[1];
-
-    if (/[AT]/.test(seq[0])) { dH += NN_PARAMS.termAT[0]; dS += NN_PARAMS.termAT[1]; } 
-    else { dH += NN_PARAMS.termGC[0]; dS += NN_PARAMS.termGC[1]; }
-
-    if (/[AT]/.test(seq[seq.length-1])) { dH += NN_PARAMS.termAT[0]; dS += NN_PARAMS.termAT[1]; } 
-    else { dH += NN_PARAMS.termGC[0]; dS += NN_PARAMS.termGC[1]; }
-
+    let dH = NN_PARAMS.init[0], dS = NN_PARAMS.init[1];
+    if (/[AT]/.test(seq[0])) { dH += NN_PARAMS.termAT[0]; dS += NN_PARAMS.termAT[1]; } else { dH += NN_PARAMS.termGC[0]; dS += NN_PARAMS.termGC[1]; }
+    if (/[AT]/.test(seq[seq.length-1])) { dH += NN_PARAMS.termAT[0]; dS += NN_PARAMS.termAT[1]; } else { dH += NN_PARAMS.termGC[0]; dS += NN_PARAMS.termGC[1]; }
     for (let i = 0; i < seq.length - 1; i++) {
-        let neighbor = seq.substring(i, i+2);
-        if (NN_PARAMS[neighbor]) { dH += NN_PARAMS[neighbor][0]; dS += NN_PARAMS[neighbor][1]; }
+        let n = seq.substring(i, i+2);
+        if (NN_PARAMS[n]) { dH += NN_PARAMS[n][0]; dS += NN_PARAMS[n][1]; }
     }
-
-    const R = 1.987;
-    const C = conc_primer_nM * 1e-9;
-    const Na = 50e-3;
-    const Mg = 2.0e-3;
-    const Na_eq = Na + 3.3 * Math.sqrt(Mg); 
-    const salt_corr = 16.6 * Math.log10(Na_eq);
-
-    return parseFloat(((dH * 1000) / (dS + R * Math.log(C/4)) - 273.15 + salt_corr).toFixed(1));
+    const Na_eq = 50e-3 + 3.3 * Math.sqrt(2.0e-3);
+    return parseFloat(((dH * 1000) / (dS + 1.987 * Math.log(250e-9/4)) - 273.15 + 16.6 * Math.log10(Na_eq)).toFixed(1));
 }
 
-/**
- * DOM Elements
- */
-const els = {
-    plasmidSeq: document.getElementById('plasmidSeq'),
-    seqLength: document.getElementById('seqLength'),
-    autoTm: document.getElementById('autoTm'),
-    fwdExtLen: document.getElementById('fwdExtLen'),
-    revExtLen: document.getElementById('revExtLen'),
-    ovLen: document.getElementById('ovLen'),
-    mutType: document.getElementById('mutationType'),
-    posSlider: document.getElementById('posSlider'),
-    posInput: document.getElementById('posInput'),
-    contextSeq: document.getElementById('contextSeq'),
-    targetBase: document.getElementById('targetBase'),
-    multiSubSeq: document.getElementById('multiSubSeq'),
-    multiSubError: document.getElementById('multiSubError'),
-    insertSeq: document.getElementById('insertSeq'),
-    insError: document.getElementById('insError'),
-    delLengthInput: document.getElementById('delLengthInput'),
-    delLimitHint: document.getElementById('delLimitHint'),
-    delError: document.getElementById('delError'),
-    generateBtn: document.getElementById('generateBtn'),
-    canvas: document.getElementById('plasmidCanvas'),
-    results: document.getElementById('primerResults'),
-    exportBtn: document.getElementById('exportBtn'),
-    targetAmino: document.getElementById('targetAmino')
-};
+/* --- Logic & Events --- */
+function switchMode(mode) {
+    appMode = mode;
+    els.calculatorPanel.classList.add('hidden'); // Hide calc on mode switch
+    if(mode === 'single') {
+        els.modeSingle.classList.add('active');
+        els.modeMulti.classList.remove('active');
+        els.singleConfig.classList.remove('hidden');
+        els.multiConfig.classList.add('hidden');
+    } else {
+        els.modeMulti.classList.add('active');
+        els.modeSingle.classList.remove('active');
+        els.singleConfig.classList.remove('hidden');
+        els.multiConfig.classList.remove('hidden');
+    }
+    validateAll();
+}
 
-let appData = { seq: "", primers: null };
-
-/**
- * Event Listeners
- */
 els.plasmidSeq.addEventListener('input', (e) => {
-    let val = e.target.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
-    e.target.value = val;
-    els.seqLength.textContent = val.length + " bp";
-    els.posSlider.max = val.length || 1;
-    validateAll(); // Re-validate deletion limit on seq change
+    e.target.value = e.target.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
+    els.seqLength.textContent = e.target.value.length + " bp";
+    els.posSlider.max = e.target.value.length || 1;
+    validateAll();
     updateContext();
 });
 
@@ -472,86 +490,46 @@ els.plasmidSeq.addEventListener('input', (e) => {
     updateContext();
 }));
 
-// Mutation Type Toggle
 els.mutType.addEventListener('change', () => {
     const type = els.mutType.value;
     document.querySelectorAll('.input-area').forEach(el => el.classList.add('hidden'));
-    
     if (type === 'substitution') document.getElementById('baseSubInput').classList.remove('hidden');
     else if (type === 'multi_substitution') document.getElementById('multiSubInput').classList.remove('hidden');
     else if (type === 'amino') document.getElementById('aminoInput').classList.remove('hidden');
     else if (type === 'insertion') document.getElementById('insInput').classList.remove('hidden');
     else if (type === 'deletion') document.getElementById('delInput').classList.remove('hidden');
-    validateAll(); // Re-validate when type changes
+    validateAll();
     updateContext();
 });
 
-// Validation Function
 function validateAll() {
-    const type = els.mutType.value;
     let isValid = true;
+    const type = els.mutType.value;
     const seqLen = els.plasmidSeq.value.length;
+    document.querySelectorAll('.error-msg').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('input').forEach(el => el.classList.remove('invalid'));
 
-    // Reset all errors
-    els.multiSubError.classList.add('hidden');
-    els.multiSubSeq.classList.remove('invalid');
-    els.insError.classList.add('hidden');
-    els.insertSeq.classList.remove('invalid');
-    els.delError.classList.add('hidden');
-    els.delLengthInput.classList.remove('invalid');
-    els.delLimitHint.textContent = `限制: 不超过载体 70% (${Math.floor(seqLen * 0.7)} bp)`;
-
-    if (type === 'multi_substitution') {
-        let val = els.multiSubSeq.value;
-        if (val.length > 6) {
-            els.multiSubError.classList.remove('hidden');
-            els.multiSubSeq.classList.add('invalid');
-            isValid = false;
-        }
+    if(type === 'multi_substitution') {
+        let v = els.multiSubSeq.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
+        els.multiSubSeq.value = v;
+        if(v.length > 6) { document.getElementById('multiSubError').classList.remove('hidden'); els.multiSubSeq.classList.add('invalid'); isValid=false; }
     } else if (type === 'insertion') {
-        let val = els.insertSeq.value;
-        if (val.length > 10) {
-            els.insError.classList.remove('hidden');
-            els.insertSeq.classList.add('invalid');
-            isValid = false;
-        }
+        let v = els.insertSeq.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
+        els.insertSeq.value = v;
+        if(v.length > 10) { document.getElementById('insError').classList.remove('hidden'); els.insertSeq.classList.add('invalid'); isValid=false; }
     } else if (type === 'deletion') {
-        let val = parseInt(els.delLengthInput.value);
-        if (seqLen > 0 && val > seqLen * 0.7) {
-            els.delError.classList.remove('hidden');
-            els.delLengthInput.classList.add('invalid');
-            isValid = false;
-        }
+        let v = parseInt(els.delLengthInput.value);
+        if(seqLen > 0 && v > seqLen * 0.7) { document.getElementById('delError').classList.remove('hidden'); els.delLengthInput.classList.add('invalid'); isValid=false; }
     }
-
     els.generateBtn.disabled = !isValid;
 }
 
-// Bind Validation to Inputs
-els.multiSubSeq.addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
-    validateAll();
-});
-els.insertSeq.addEventListener('input', (e) => {
-    e.target.value = e.target.value.replace(/[^ATCGatcg]/g, '').toUpperCase();
-    validateAll();
-});
-els.delLengthInput.addEventListener('input', validateAll);
-
-
-els.generateBtn.addEventListener('click', designPrimers);
-[els.fwdExtLen, els.revExtLen].forEach(el => {
-    el.addEventListener('change', () => {
-        let v = parseInt(el.value);
-        if(v < 10) el.value = 10;
-        if(v > 20) el.value = 20;
-    });
+['input', 'change'].forEach(evt => {
+    els.multiSubSeq.addEventListener(evt, validateAll);
+    els.insertSeq.addEventListener(evt, validateAll);
+    els.delLengthInput.addEventListener(evt, validateAll);
 });
 
-
-/**
- * Core Logic
- */
 function updateContext() {
     const seq = els.plasmidSeq.value;
     if (!seq) return;
@@ -559,266 +537,336 @@ function updateContext() {
     const before = getCircularSeq(seq, idx - 5, 5).toLowerCase();
     const target = getCircularSeq(seq, idx, 1);
     const after = getCircularSeq(seq, idx + 1, 5).toLowerCase();
-    
     let html = `${before} <span style="color:var(--danger); font-weight:bold; border-bottom:2px solid var(--danger)">${target}</span> ${after}`;
     if (els.mutType.value === 'amino') {
         const codon = getCircularSeq(seq, idx, 3);
         const aa = AA_MAP_REV[codon] || '?';
         html += `<br><span style="color:var(--primary); font-size:11px;">Codon: ${codon} (${aa})</span>`;
     }
-    els.contextSeq.innerHTML = html;
+    document.getElementById('contextSeq').innerHTML = html;
 }
 
+/* --- Multi-Site Logic --- */
+function addCurrentMutation() {
+    const seq = els.plasmidSeq.value;
+    if(!seq) return alert("请先输入载体序列");
+    const pos = parseInt(els.posInput.value) - 1;
+    const type = els.mutType.value;
+    let mutObj = { pos: pos, type: type, seq: "", delLen: 0, desc: "" };
+
+    if (type === 'substitution') {
+        mutObj.seq = els.targetBase.value.toUpperCase() || 'N';
+        mutObj.delLen = 1;
+        mutObj.desc = `${getCircularSeq(seq, pos, 1)}${pos+1}${mutObj.seq}`;
+    } else if (type === 'multi_substitution') {
+        mutObj.seq = els.multiSubSeq.value.toUpperCase();
+        mutObj.delLen = mutObj.seq.length;
+        mutObj.desc = `Sub(${mutObj.delLen}bp) @ ${pos+1}`;
+    } else if (type === 'amino') {
+        mutObj.seq = OPTIMAL_CODONS[els.targetAmino.value];
+        mutObj.delLen = 3;
+        mutObj.desc = `${AA_MAP_REV[getCircularSeq(seq, pos, 3)]}${Math.floor(pos/3)+1}${els.targetAmino.value}`;
+    } else if (type === 'insertion') {
+        mutObj.seq = els.insertSeq.value.toUpperCase();
+        mutObj.delLen = 0;
+        mutObj.desc = `Ins(${mutObj.seq.length}bp) @ ${pos+1}`;
+    } else if (type === 'deletion') {
+        mutObj.seq = "";
+        mutObj.delLen = parseInt(els.delLengthInput.value);
+        mutObj.desc = `Del(${mutObj.delLen}bp) @ ${pos+1}`;
+    }
+
+    if(mutList.some(m => m.pos === pos)) { alert("该位置已存在突变！"); return; }
+    mutList.push(mutObj);
+    mutList.sort((a,b) => a.pos - b.pos);
+    renderMutList();
+}
+
+function renderMutList() {
+    const container = els.mutListContainer;
+    container.innerHTML = "";
+    mutList.forEach((m, idx) => {
+        const div = document.createElement('div');
+        div.className = 'mut-item';
+        div.innerHTML = `
+            <div class="mut-item-header"><span>Mutation ${idx+1}</span><span class="btn-del-mut" onclick="removeMut(${idx})">🗑 删除</span></div>
+            <div class="mut-item-desc">${m.desc} (Pos: ${m.pos+1})</div>`;
+        container.appendChild(div);
+    });
+}
+window.removeMut = function(idx) { mutList.splice(idx, 1); renderMutList(); }
+
+/* --- Generation Logic --- */
 function optimizeExtensionLength(fullSeq, startIdx, isRev) {
     let bestLen = 15;
     let minDiff = 999;
-    const targetTm = 35.0;
-
     for (let len = 10; len <= 20; len++) {
-        let seqFrag = "";
-        if (!isRev) {
-            seqFrag = getCircularSeq(fullSeq, startIdx, len);
-        } else {
-            let fragRaw = getCircularSeq(fullSeq, startIdx - len, len);
-            seqFrag = revComp(fragRaw);
-        }
-        
-        const tm = calculateTm(seqFrag);
-        const diff = Math.abs(tm - targetTm);
-        
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestLen = len;
-        }
+        let seqFrag = isRev ? revComp(getCircularSeq(fullSeq, startIdx - len, len)) : getCircularSeq(fullSeq, startIdx, len);
+        let diff = Math.abs(calculateTm(seqFrag) - 35.0);
+        if (diff < minDiff) { minDiff = diff; bestLen = len; }
     }
     return bestLen;
 }
 
-function designPrimers() {
+els.generateBtn.addEventListener('click', () => {
     const seq = els.plasmidSeq.value;
-    const pos = parseInt(els.posInput.value) - 1; 
-    let ovLen = parseInt(els.ovLen.value);
-    const type = els.mutType.value;
-    
-    if (!seq) return alert("请输入序列");
+    if(!seq) return alert("无序列");
 
-    // Mutation Definition & Validation
-    let mutInfo = { type: type, seq: "", delLen: 0, desc: "" };
-    
-    if (type === 'substitution') {
-        mutInfo.seq = els.targetBase.value.toUpperCase();
-        mutInfo.delLen = 1;
-        mutInfo.desc = `${getCircularSeq(seq, pos, 1)} > ${mutInfo.seq}`;
-    } 
-    else if (type === 'multi_substitution') {
-        const s = els.multiSubSeq.value.toUpperCase();
-        mutInfo.seq = s;
-        mutInfo.delLen = s.length; 
-        mutInfo.desc = `Replace ${s.length}bp > ${s}`;
+    if (appMode === 'single') {
+        const pos = parseInt(els.posInput.value) - 1;
+        const type = els.mutType.value;
+        let mutObj = { pos, type, seq: "", delLen: 0, desc: "" };
+        if(type==='substitution') { mutObj.seq = els.targetBase.value.toUpperCase(); mutObj.delLen=1; mutObj.desc="Single Sub"; }
+        else if(type==='multi_substitution') { mutObj.seq = els.multiSubSeq.value; mutObj.delLen=mutObj.seq.length; mutObj.desc="Multi Sub"; }
+        else if(type==='amino') { mutObj.seq = OPTIMAL_CODONS[els.targetAmino.value]; mutObj.delLen=3; mutObj.desc="Amino"; }
+        else if(type==='insertion') { mutObj.seq = els.insertSeq.value; mutObj.delLen=0; mutObj.desc="Ins"; }
+        else if(type==='deletion') { mutObj.seq=""; mutObj.delLen=parseInt(els.delLengthInput.value); mutObj.desc="Del"; }
+        
+        appData.primers = designFragments([mutObj], seq);
+        els.calculatorPanel.classList.add('hidden'); // No calc for single
+    } else {
+        if(mutList.length === 0) return alert("请添加至少一个突变位点");
+        appData.primers = designFragments(mutList, seq);
+        // INIT CALCULATOR for Multi Mode
+        initCalculator(appData.primers);
+        els.calculatorPanel.classList.remove('hidden');
     }
-    else if (type === 'amino') {
-        mutInfo.seq = OPTIMAL_CODONS[els.targetAmino.value];
-        mutInfo.delLen = 3;
-        mutInfo.desc = `${AA_MAP_REV[getCircularSeq(seq, pos, 3)]}->${els.targetAmino.value}`;
-    } 
-    else if (type === 'insertion') {
-        const s = els.insertSeq.value.toUpperCase();
-        mutInfo.seq = s;
-        mutInfo.delLen = 0;
-        mutInfo.desc = `Insert ${mutInfo.seq.length}bp`;
-    } 
-    else if (type === 'deletion') {
-        const delLen = parseInt(els.delLengthInput.value);
-        mutInfo.seq = "";
-        mutInfo.delLen = delLen;
-        mutInfo.desc = `Delete ${mutInfo.delLen}bp`;
-    }
-
-    // Auto Optimize Extension
-    if (els.autoTm.checked) {
-        const fwdStart = pos + mutInfo.delLen;
-        const bestFwdLen = optimizeExtensionLength(seq, fwdStart, false);
-        els.fwdExtLen.value = bestFwdLen;
-
-        const revRefPoint = pos - ovLen;
-        const bestRevLen = optimizeExtensionLength(seq, revRefPoint, true);
-        els.revExtLen.value = bestRevLen;
-    }
-
-    const fwdExtLen = parseInt(els.fwdExtLen.value);
-    const revExtLen = parseInt(els.revExtLen.value);
-
-    // Build Sequences (Partial Overlap)
-    // Fwd: [Overlap] + [Mut] + [Ext]
-    const fwdOverlap = getCircularSeq(seq, pos - ovLen, ovLen);
-    const fwdMut = mutInfo.seq;
-    const fwdExt = getCircularSeq(seq, pos + mutInfo.delLen, fwdExtLen);
-    const fwdFull = fwdOverlap + fwdMut.toLowerCase() + fwdExt;
-
-    // Rev: [Overlap RC] + [Mut RC] + [Ext RC]
-    const revOverlap = revComp(fwdOverlap); 
-    const revMut = revComp(fwdMut);
-    const revExtRaw = getCircularSeq(seq, pos - ovLen - revExtLen, revExtLen);
-    const revExt = revComp(revExtRaw);
-    const revFull = revOverlap + revMut.toLowerCase() + revExt;
-
-    appData.primers = {
-        fwd: { seq: fwdFull, ov: fwdOverlap, mut: fwdMut, ext: fwdExt, tmExt: calculateTm(fwdExt) },
-        rev: { seq: revFull, ov: revOverlap, mut: revMut, ext: revExt, tmExt: calculateTm(revExt) },
-        info: mutInfo,
-        pos: pos,
-        params: { fwdExt: fwdExtLen, revExt: revExtLen, ov: ovLen }
-    };
-
     renderResults();
     drawPlasmid();
+});
+
+function designFragments(mutations, seq) {
+    const fragments = [];
+    const ovLen = parseInt(els.ovLen.value);
+    const isAuto = els.autoTm.checked;
+    
+    for(let i=0; i<mutations.length; i++) {
+        const curr = mutations[i];
+        const next = mutations[(i+1) % mutations.length];
+        
+        let fwdStart = curr.pos + curr.delLen;
+        let fwdExtLen = isAuto ? optimizeExtensionLength(seq, fwdStart, false) : parseInt(els.fwdExtLen.value);
+        const fwdOverlap = getCircularSeq(seq, curr.pos - ovLen, ovLen);
+        const fwdMut = curr.seq;
+        const fwdExt = getCircularSeq(seq, fwdStart, fwdExtLen);
+        const fwdFull = fwdOverlap + fwdMut.toLowerCase() + fwdExt;
+        
+        let revRef = next.pos - ovLen;
+        let revExtLen = isAuto ? optimizeExtensionLength(seq, revRef, true) : parseInt(els.revExtLen.value);
+        const nextFwdOverlap = getCircularSeq(seq, next.pos - ovLen, ovLen);
+        const revOverlap = revComp(nextFwdOverlap);
+        const revMut = revComp(next.seq);
+        const revExtRaw = getCircularSeq(seq, next.pos - ovLen - revExtLen, revExtLen);
+        const revExt = revComp(revExtRaw);
+        const revFull = revOverlap + revMut.toLowerCase() + revExt;
+
+        let startIdx = curr.pos + curr.delLen;
+        let endIdx = next.pos - ovLen;
+        let ampLen = (endIdx - startIdx + seq.length) % seq.length;
+        
+        // Approximate PCR product length (Amplicon + Primer contributions)
+        // Note: For seamless, we often care about the full length including overhangs
+        let pcrLen = ampLen + fwdFull.length + revFull.length; // Approximate upper bound, good enough for mass
+        
+        fragments.push({
+            id: i+1,
+            startInfo: curr, endInfo: next,
+            fwd: { seq: fwdFull, ov: fwdOverlap, mut: fwdMut, ext: fwdExt, tm: calculateTm(fwdExt) },
+            rev: { seq: revFull, ov: revOverlap, mut: revMut, ext: revExt, tm: calculateTm(revExt) },
+            ampLen: ampLen,
+            pcrLen: pcrLen
+        });
+    }
+    return fragments;
 }
 
 function renderResults() {
-    const p = appData.primers;
-    if(!p) return;
-
-    const mkResult = (label, data) => `
-        <div class="result-card" style="margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:var(--text);">${label} Primer</h3>
-                <span style="font-size:11px; color:#666;">${data.seq.length}nt | Tm(Ext): <b>${data.tmExt}°C</b></span>
+    const frags = appData.primers;
+    els.results.innerHTML = "";
+    frags.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'result-card';
+        div.innerHTML = `
+            <div class="amplicon-header">
+                <span>Amplicon ${f.id} (Fragment)</span>
+                <span style="font-weight:400; font-size:0.8em">Length: ~${f.pcrLen} bp</span>
+            </div>
+            <div style="font-size:0.8em; color:#666; margin-bottom:4px">
+                Covers: Mut ${f.startInfo.desc} ➜ Mut ${f.endInfo.desc}
             </div>
             <div class="primer-box">
-                <span class="seq-label">5' [Overlap] [Mut] [Extension] 3'</span>
-                <div class="primer-seq">
-                    <span class="part-overlap">${data.ov}</span><span class="part-mut">${data.mut.toLowerCase()}</span><span class="part-ext">${data.ext}</span>
-                </div>
+                <span class="seq-label">Forward Primer (Start) - Tm(Ext): ${f.fwd.tm}°C</span>
+                <div class="primer-seq"><span class="part-overlap">${f.fwd.ov}</span><span class="part-mut">${f.fwd.mut.toLowerCase()}</span><span class="part-ext">${f.fwd.ext}</span></div>
             </div>
-        </div>`;
+            <div class="primer-box">
+                <span class="seq-label">Reverse Primer (End) - Tm(Ext): ${f.rev.tm}°C</span>
+                <div class="primer-seq"><span class="part-overlap">${f.rev.ov}</span><span class="part-mut">${f.rev.mut.toLowerCase()}</span><span class="part-ext">${f.rev.ext}</span></div>
+            </div>`;
+        els.results.appendChild(div);
+    });
+}
 
-    els.results.innerHTML = mkResult('Forward', p.fwd) + mkResult('Reverse', p.rev);
+/* --- Calculator Logic --- */
+function initCalculator(fragments) {
+    const tbody = els.mixTableBody;
+    tbody.innerHTML = ""; // Clear existing
+
+    // 1. Vector Row (Optional usage)
+    const vecRow = `
+        <tr style="background:#f9fafb">
+            <td><b>线性化载体 (可选)</b></td>
+            <td><input type="number" id="mixVecLen" class="mix-input" placeholder="bp"></td>
+            <td><input type="number" id="mixVecConc" class="mix-input" placeholder="ng/μL"></td>
+            <td class="mix-result" id="resVecVol">-</td>
+            <td style="font-size:11px; color:#666" id="resVecPmol">-</td>
+        </tr>`;
+    tbody.innerHTML += vecRow;
+
+    // 2. Fragment Rows
+    fragments.forEach((f, idx) => {
+        const row = `
+            <tr>
+                <td>片段 ${f.id} (Amplicon)</td>
+                <td><input type="number" id="mixFragLen${idx}" class="mix-input" value="${f.pcrLen}"></td>
+                <td><input type="number" id="mixFragConc${idx}" class="mix-input" placeholder="ng/μL"></td>
+                <td class="mix-result" id="resFragVol${idx}">-</td>
+                <td style="font-size:11px; color:#666" id="resFragPmol${idx}">-</td>
+            </tr>`;
+        tbody.innerHTML += row;
+    });
+}
+
+window.calculateMix = function() {
+    const vecMass = parseFloat(document.getElementById('calcVecMass').value) || 0;
+    const ratio = parseFloat(document.getElementById('calcRatio').value) || 0;
+    const totalVol = parseFloat(document.getElementById('calcTotalVol').value) || 20;
+
+    // Vector Calculation (If user inputs data, otherwise treat as 0 for Pure Fragment assembly)
+    const vecLenInput = document.getElementById('mixVecLen');
+    const vecConcInput = document.getElementById('mixVecConc');
+    let vecVol = 0; 
+    let basePmol = 0; // The reference pmol
+
+    if (vecLenInput.value && vecConcInput.value) {
+        const vLen = parseFloat(vecLenInput.value);
+        const vConc = parseFloat(vecConcInput.value);
+        basePmol = (vecMass * 1000) / (vLen * 660);
+        vecVol = vecMass / vConc;
+        document.getElementById('resVecPmol').innerText = basePmol.toFixed(3);
+        document.getElementById('resVecVol').innerText = vecVol.toFixed(2);
+    } else {
+        document.getElementById('resVecVol').innerText = "(Skip)";
+        // If skipping vector, assume user wants to base pmol on Mass of first fragment? 
+        // Or simply fail? Usually Seamless requires a Vector backbone row.
+        // Let's assume if vector is empty, use the mass on the first fragment as reference?
+        // Simpler: Alert user or allow pure fragment assembly logic (requires define logic).
+        // Defaulting to: If Vector empty, Vector Vol = 0.
+        // But we need a base pmol. If no vector, calculate base pmol from Mass input applied to Frag 1?
+        // For simplicity: We enforce Vector Row usage OR user puts the "Backbone Fragment" in the vector row manually.
+    }
+
+    let currentTotalVol = vecVol;
+
+    // Fragment Calculations
+    const frags = appData.primers || [];
+    frags.forEach((f, idx) => {
+        const lenEl = document.getElementById(`mixFragLen${idx}`);
+        const concEl = document.getElementById(`mixFragConc${idx}`);
+        const resVolEl = document.getElementById(`resFragVol${idx}`);
+        const resPmolEl = document.getElementById(`resFragPmol${idx}`);
+
+        if(lenEl && concEl && lenEl.value && concEl.value) {
+            const fLen = parseFloat(lenEl.value);
+            const fConc = parseFloat(concEl.value);
+            
+            // If basePmol is 0 (no vector info), try to establish it from Frag 1 being the "Vector" equivalent?
+            // Standard behavior: Use Vector as base.
+            
+            if (basePmol > 0) {
+                const targetPmol = basePmol * ratio;
+                const reqMass = (targetPmol * fLen * 660) / 1000;
+                const reqVol = reqMass / fConc;
+                
+                resPmolEl.innerText = targetPmol.toFixed(3);
+                resVolEl.innerText = reqVol.toFixed(2);
+                currentTotalVol += reqVol;
+            } else {
+                resVolEl.innerText = "?";
+            }
+        } else {
+            resVolEl.innerText = "-";
+        }
+    });
+
+    // Water
+    const waterVol = totalVol - currentTotalVol;
+    const waterEl = document.getElementById('resWater');
+    if (waterVol < 0) {
+        waterEl.innerText = "体积超标!";
+        waterEl.style.color = "red";
+    } else {
+        waterEl.innerText = waterVol.toFixed(2);
+        waterEl.style.color = "var(--purple)";
+    }
 }
 
 function drawPlasmid() {
     const ctx = els.canvas.getContext('2d');
     const w = els.canvas.width, h = els.canvas.height;
     const cx = w/2, cy = h/2, r = 130;
-    
     ctx.clearRect(0,0,w,h);
     
-    // 1. Draw Thicker Backbone
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, 2*Math.PI);
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.lineWidth = 20;
-    ctx.stroke();
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 20; ctx.stroke();
 
-    const totalLen = els.plasmidSeq.value.length || 0;
+    ctx.fillStyle = '#64748b'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText("GeneDIY-C", cx, cy-10); ctx.font = '12px monospace'; ctx.fillText(`${els.plasmidSeq.value.length} bp`, cx, cy+10);
 
-    // Center Text (Vector Length)
-    ctx.fillStyle = '#64748b';
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText("GeneDIY-C", cx, cy - 10);
-    ctx.font = '12px monospace';
-    ctx.fillText(`${totalLen} bp`, cx, cy + 10);
+    const frags = appData.primers;
+    if(!frags) return;
+    const totalLen = els.plasmidSeq.value.length;
+    const colors = ['#4f46e5', '#0ea5e9', '#8b5cf6', '#ec4899']; 
 
-    if(!appData.primers || totalLen === 0) return;
-
-    // Calc Angles
-    // Use visual scale to ensure visibility even for small primers
-    const visualScale = 0.02; // Arbitrary visual factor per bp
-    const posRad = -0.5*Math.PI + (appData.primers.pos / totalLen) * 2*Math.PI;
-    
-    // Params
-    const ovRad = appData.primers.params.ov * visualScale;
-    const fwdExtRad = appData.primers.params.fwdExt * visualScale;
-    const revExtRad = appData.primers.params.revExt * visualScale;
-
-    // 2. Mutation Mark (Red Wedge)
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, posRad - 0.02, posRad + 0.02);
-    ctx.strokeStyle = '#e11d48';
-    ctx.lineWidth = 22; // Slightly thicker than backbone to stand out
-    ctx.stroke();
-
-    // 3. Draw Fwd Primer (Outer Ring)
-    // Structure: Tail (Overlap) -> Head (Extension)
-    // Overlap: Starts at `pos - ov`, ends at `pos`
-    // Ext: Starts at `pos`, ends at `pos + ext`
-    const rOuter = r + 25;
-    
-    // Fwd Overlap (Tail) - Orange
-    drawArcSolid(ctx, cx, cy, rOuter, posRad - ovRad, posRad, '#d97706');
-    // Fwd Extension (Head) - Blue with Arrow
-    drawArcArrow(ctx, cx, cy, rOuter, posRad, posRad + fwdExtRad, '#4f46e5', true);
-
-    // 4. Draw Rev Primer (Inner Ring)
-    // Structure: Tail (Overlap) -> Head (Extension)
-    // Overlap: Starts at `pos`, ends at `pos - ov` (CCW)
-    // Ext: Starts at `pos - ov`, ends at `pos - ov - ext` (CCW)
-    const rInner = r - 25;
-
-    // Rev Overlap (Tail) - Orange
-    drawArcSolid(ctx, cx, cy, rInner, posRad - ovRad, posRad, '#d97706');
-    // Rev Extension (Head) - Blue with Arrow
-    drawArcArrow(ctx, cx, cy, rInner, posRad - ovRad, posRad - ovRad - revExtRad, '#4f46e5', false);
+    frags.forEach((f, idx) => {
+        let startRad = -0.5*Math.PI + (f.startInfo.pos / totalLen) * 2*Math.PI;
+        let endRad = -0.5*Math.PI + (f.endInfo.pos / totalLen) * 2*Math.PI;
+        if (endRad <= startRad) endRad += 2*Math.PI; 
+        const color = colors[idx % colors.length];
+        
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 15 + (idx*5), startRad, endRad);
+        ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.stroke();
+        drawArrow(ctx, cx, cy, r + 15 + (idx*5), startRad, startRad + 0.1, color, true);
+        drawArrow(ctx, cx, cy, r + 15 + (idx*5), endRad, endRad - 0.1, color, false);
+        drawMutMark(ctx, cx, cy, r, startRad);
+    });
+}
+function drawArrow(ctx, cx, cy, r, startAngle, endAngle, color, cw) {
+    const tipX = cx + r * Math.cos(endAngle); const tipY = cy + r * Math.sin(endAngle);
+    ctx.save(); ctx.translate(tipX, tipY); ctx.rotate(endAngle + (cw ? Math.PI/2 : -Math.PI/2));
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-4,8); ctx.lineTo(4,8); ctx.fillStyle = color; ctx.fill(); ctx.restore();
+}
+function drawMutMark(ctx, cx, cy, r, angle) {
+    const x = cx + r * Math.cos(angle); const y = cy + r * Math.sin(angle);
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.fillStyle = '#e11d48'; ctx.font = 'bold 14px sans-serif'; ctx.fillText('X', 0, 0); ctx.restore();
 }
 
-function drawArcArrow(ctx, cx, cy, r, startAngle, endAngle, color, cw) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle, !cw);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-    
-    // Arrowhead
-    const tipX = cx + r * Math.cos(endAngle);
-    const tipY = cy + r * Math.sin(endAngle);
-    ctx.save();
-    ctx.translate(tipX, tipY);
-    ctx.rotate(endAngle + (cw ? Math.PI/2 : -Math.PI/2));
-    ctx.beginPath(); 
-    ctx.moveTo(0,0); ctx.lineTo(-5,10); ctx.lineTo(5,10); 
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.restore();
-}
-
-function drawArcSolid(ctx, cx, cy, r, startAngle, endAngle, color) {
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, startAngle, endAngle, false); 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 6;
-    ctx.stroke();
-}
-
-// Export CSV
 els.exportBtn.addEventListener('click', () => {
-    if (!appData.primers) return alert("请先生成引物数据");
-    
-    const p = appData.primers;
-    // BOM for Excel
-    const BOM = "\uFEFF";
-    const content = `GeneDIY-C Primer Report
-Target,${p.info.desc}
-Strategy,Partial Overlap (V1.4)
-Vector Length,${els.plasmidSeq.value.length} bp
-Overlap Len,${p.params.ov} bp
-Fwd Extension,${p.params.fwdExt} bp (Tm ${p.fwd.tmExt}C)
-Rev Extension,${p.params.revExt} bp (Tm ${p.rev.tmExt}C)
-
-Primer Name,Sequence (5'-3'),Length,Tm (Ext),Type
-Forward,${p.fwd.seq},${p.fwd.seq.length},${p.fwd.tmExt},Overlap+Mut+Ext
-Reverse,${p.rev.seq},${p.rev.seq.length},${p.rev.tmExt},Overlap+Mut+Ext
-`;
-    
-    const blob = new Blob([BOM + content], {type: 'text/csv;charset=utf-8;'});
+    if (!appData.primers) return;
+    let csv = `GeneDIY-C Report (V1.7)\nMode,${appMode}\nVector Length,${els.plasmidSeq.value.length}\n\n`;
+    appData.primers.forEach(f => {
+        csv += `Fragment ${f.id} (Mut ${f.startInfo.desc} to Mut ${f.endInfo.desc})\n`;
+        csv += `Type,Name,Sequence (5'-3'),Length,Tm(Ext)\n`;
+        csv += `Forward,Frag${f.id}_F,${f.fwd.seq},${f.fwd.seq.length},${f.fwd.tm}\n`;
+        csv += `Reverse,Frag${f.id}_R,${f.rev.seq},${f.rev.seq.length},${f.rev.tm}\n\n`;
+    });
+    const blob = new Blob(["\uFEFF"+csv], {type: 'text/csv;charset=utf-8;'});
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `GeneDIY-C_primers_${new Date().toISOString().slice(0,10)}.csv`;
+    link.download = "GeneDIY-C_Primers.csv";
     link.click();
 });
-
-// Init
-drawPlasmid();
 </script>
 </body>
 </html>
